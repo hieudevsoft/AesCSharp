@@ -1,0 +1,15 @@
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\bin\Debug\net6.0\Aes_Bin_Tam.exe
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\bin\Debug\net6.0\Aes_Bin_Tam.deps.json
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\bin\Debug\net6.0\Aes_Bin_Tam.runtimeconfig.json
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\bin\Debug\net6.0\Aes_Bin_Tam.dll
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\bin\Debug\net6.0\ref\Aes_Bin_Tam.dll
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\bin\Debug\net6.0\Aes_Bin_Tam.pdb
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\obj\Debug\net6.0\Aes_Bin_Tam.csproj.AssemblyReference.cache
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\obj\Debug\net6.0\Aes_Bin_Tam.GeneratedMSBuildEditorConfig.editorconfig
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\obj\Debug\net6.0\Aes_Bin_Tam.AssemblyInfoInputs.cache
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\obj\Debug\net6.0\Aes_Bin_Tam.AssemblyInfo.cs
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\obj\Debug\net6.0\Aes_Bin_Tam.csproj.CoreCompileInputs.cache
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\obj\Debug\net6.0\Aes_Bin_Tam.dll
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\obj\Debug\net6.0\ref\Aes_Bin_Tam.dll
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\obj\Debug\net6.0\Aes_Bin_Tam.pdb
+D:\DEVS\C_C++_C#\Aes_Bin_Tam\obj\Debug\net6.0\Aes_Bin_Tam.genruntimeconfig.cache
