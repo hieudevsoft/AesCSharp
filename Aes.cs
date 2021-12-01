@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Aes_Bin_Tam
 {
     public class Aes
@@ -6,26 +8,37 @@ namespace Aes_Bin_Tam
         private static int Nb = 4;
         private int Nr;
         private int Nk;
-        private int[,,] state;
+        private int[][][] state;
         private int[] w;
         private int[] key;
         private byte[] iv;
 
         public Aes(byte[] key)
         {
-            init(key, null);
+            initWithoutIv(key);
         }
 
         public Aes(byte[] key, byte[] iv)
         {
-            init(key, iv);
+            initWithIv(key, iv);
         }
 
 
-        private void init(byte[] key, byte[] iv)
+        private void initWithIv(byte[] key, byte[] iv)
         {
             this.iv = iv;
             this.key = new int[key.Length];
+            initElements(key);
+        }
+
+        private void initWithoutIv(byte[] key)
+        {
+            this.key = new int[key.Length];
+            initElements(key);
+        }
+
+        private void initElements(byte[] key)
+        {
             for (int i = 0; i < key.Length; i++)
             {
                 this.key[i] = key[i];
@@ -53,35 +66,41 @@ namespace Aes_Bin_Tam
                     }
                 default: throw new FormatException("Chỉ hỗ trợ 128, 192 and 256 bit keys!");
             }
-
-
-            var state = new int[2, 4, Nb];
+            state = new int[2][][];
+            for (int i = 0; i < state.Length; i++)
+            {
+                state[i] = new int[4][];
+                for (int j = 0; j < state[i].Length; j++)
+                {
+                    state[i][j] = new int[Nb];
+                }
+            }
             w = new int[Nb * (Nr + 1)];
             expandKey();
         }
-        private int[,] addRoundKey(int[,] s, int round)
+        private int[][] addRoundKey(int[][] s, int round)
         {
             for (int c = 0; c < Nb; c++)
             {
                 for (int r = 0; r < 4; r++)
                 {
-                    s[r,c] = s[r,c] ^ ((w[round * Nb + c] << (r * 8)) >> 24);
+                    var temp = (int)(w[round * Nb + c] << (r * 8));
+                    s[r][c] = (int)(s[r][c] ^ ((uint)temp >> 24));
                 }
             }
             return s;
         }
-        private int[,] cipher(int[,] input, int[,] output)
+        private int[][] cipher(int[][] input, int[][] output)
         {
             for (int i = 0; i < input.Length; i++)
             {
                 for (int j = 0; j < input.Length; j++)
                 {
-                    output[i,j] = input[i,j];
+                    output[i][j] = input[i][j];
                 }
             }
             currentRound = 0;
             addRoundKey(output, currentRound);
-
             for (currentRound = 1; currentRound < Nr; currentRound++)
             {
                 subBytes(output);
@@ -95,19 +114,35 @@ namespace Aes_Bin_Tam
             return output;
         }
 
-        private int[,] decipher(int[,] input, int[,] output)
+        public string ToMatrixString(int[][] matrix, string delimiter = "\t")
+        {
+            var s = new StringBuilder();
+
+            for (var i = 0; i < matrix.Length; i++)
+            {
+                for (var j = 0; j < matrix[i].Length; j++)
+                {
+                    s.Append(matrix[i][j]).Append(delimiter);
+                }
+
+                s.AppendLine();
+            }
+
+            return s.ToString();
+        }
+
+        private int[][] decipher(int[][] input, int[][] output)
         {
             for (int i = 0; i < input.Length; i++)
             {
                 for (int j = 0; j < input.Length; j++)
                 {
-                    output[i,j] = input[i,j];
+                    output[i][j] = input[i][j];
                 }
             }
             currentRound = Nr;
             addRoundKey(output, currentRound);
-
-            for (currentRound = Nr - 1; currentRound > 0; currentRound--)
+            for (currentRound = Nr - 1; currentRound > 0; currentRound -= 1)
             {
                 invShiftRows(output);
                 invSubBytes(output);
@@ -117,6 +152,7 @@ namespace Aes_Bin_Tam
             invShiftRows(output);
             invSubBytes(output);
             addRoundKey(output, currentRound);
+
             return output;
         }
 
@@ -127,21 +163,19 @@ namespace Aes_Bin_Tam
                 throw new FormatException("Chỉ 16-bytes block mới được phép mã hóa");
             }
             byte[] output = new byte[text.Length];
-
             for (int i = 0; i < Nb; i++)
             {
                 for (int j = 0; j < 4; j++)
                 {
-                    state[0, j, i] = text[i * Nb + j] & 0xff;
+                    state[0][j][i] = text[i * Nb + j] & 0xff;
                 }
             }
-
-            decipher(convertTo2Array(0,state,4,Nb), convertTo2Array(1,state,4,Nb));
+            cipher(state[0], state[1]);
             for (int i = 0; i < Nb; i++)
             {
                 for (int j = 0; j < 4; j++)
                 {
-                    output[i * Nb + j] = (byte)(state[1, j, i] & 0xff);
+                    output[i * Nb + j] = (byte)(state[1][j][i] & 0xff);
                 }
             }
             return output;
@@ -154,93 +188,105 @@ namespace Aes_Bin_Tam
                 throw new FormatException("Chỉ 16-bytes block mới được phép giải mã");
             }
             byte[] output = new byte[text.Length];
-
             for (int i = 0; i < Nb; i++)
             { // columns
                 for (int j = 0; j < 4; j++)
                 { // rows
-                    state[0, j, i] = text[i * Nb + j] & 0xff;
+                    state[0][j][i] = text[i * Nb + j] & 0xff;
                 }
             }
+            decipher(state[0], state[1]);
+            // for (int i = 0; i < state[1].Length; i++)
+            // { // columns
+            //     for (int j = 0; j < state[1].Length; j++)
+            //     { // rows
+            //         Console.Write(state[1][i][j]+", ");
+            //     }
+            // }
 
-            decipher(convertTo2Array(0,state,4,Nb), convertTo2Array(1,state,4,Nb));
             for (int i = 0; i < Nb; i++)
             {
                 for (int j = 0; j < 4; j++)
                 {
-                    output[i * Nb + j] = (byte)(state[1, j, i] & 0xff);
+                    output[i * Nb + j] = (byte)(state[1][j][i] & 0xff);
                 }
             }
+
             return output;
         }
 
-        private int [,] convertTo2Array(int mode,int[,,] state,int row,int columns){
-            int [,] result = new int[row,columns];
-            for(int i = 0;i<row;i++){
-                for(int j = 0;j<columns;j++)
-                result[i,j] = state[mode,i,j];
+        private void show3Darray(int[][][] foos)
+        {
+            for (int x = 0; x < foos.Length; x++)
+            {
+                for (int y = 0; y < foos[x].Length; y++)
+                {
+                    for (int z = 0; z < foos[x][y].Length; z++)
+                    {
+                        Console.WriteLine(foos[x][y][z]);
+                    }
+                }
             }
-            return result;
         }
 
-        private int[,] invMixColumns(int[,] state)
+        private int[][] invMixColumns(int[][] state)
         {
             int temp0, temp1, temp2, temp3;
             for (int c = 0; c < Nb; c++)
             {
-                temp0 = mult(0x0e, state[0,c]) ^ mult(0x0b, state[1,c]) ^ mult(0x0d, state[2,c]) ^ mult(0x09, state[3,c]);
-                temp1 = mult(0x09, state[0,c]) ^ mult(0x0e, state[1,c]) ^ mult(0x0b, state[2,c]) ^ mult(0x0d, state[3,c]);
-                temp2 = mult(0x0d, state[0,c]) ^ mult(0x09, state[1,c]) ^ mult(0x0e, state[2,c]) ^ mult(0x0b, state[3,c]);
-                temp3 = mult(0x0b, state[0,c]) ^ mult(0x0d, state[1,c]) ^ mult(0x09, state[2,c]) ^ mult(0x0e, state[3,c]);
+                temp0 = mult(0x0e, state[0][c]) ^ mult(0x0b, state[1][c]) ^ mult(0x0d, state[2][c]) ^ mult(0x09, state[3][c]);
+                temp1 = mult(0x09, state[0][c]) ^ mult(0x0e, state[1][c]) ^ mult(0x0b, state[2][c]) ^ mult(0x0d, state[3][c]);
+                temp2 = mult(0x0d, state[0][c]) ^ mult(0x09, state[1][c]) ^ mult(0x0e, state[2][c]) ^ mult(0x0b, state[3][c]);
+                temp3 = mult(0x0b, state[0][c]) ^ mult(0x0d, state[1][c]) ^ mult(0x09, state[2][c]) ^ mult(0x0e, state[3][c]);
 
-                state[0,c] = temp0;
-                state[1,c] = temp1;
-                state[2,c] = temp2;
-                state[3,c] = temp3;
+                state[0][c] = temp0;
+                state[1][c] = temp1;
+                state[2][c] = temp2;
+                state[3][c] = temp3;
             }
             return state;
         }
-        private int[,] invShiftRows(int[,] state)
+        private int[][] invShiftRows(int[][] state)
         {
             int temp1, temp2, temp3, i;
 
-            temp1 = state[1,Nb - 1];
+            temp1 = state[1][Nb - 1];
             for (i = Nb - 1; i > 0; i--)
             {
-                state[1,i] = state[1,(i - 1) % Nb];
+                state[1][i] = state[1][(i - 1) % Nb];
             }
-            state[1,0] = temp1;
+            state[1][0] = temp1;
 
-            temp1 = state[2,Nb - 1];
-            temp2 = state[2,Nb - 2];
+            temp1 = state[2][Nb - 1];
+            temp2 = state[2][Nb - 2];
             for (i = Nb - 1; i > 1; i--)
             {
-                state[2,i] = state[2,(i - 2) % Nb];
+                state[2][i] = state[2][(i - 2) % Nb];
             }
-            state[2,1] = temp1;
-            state[2,0] = temp2;
+            state[2][1] = temp1;
+            state[2][0] = temp2;
 
-            temp1 = state[3,Nb - 3];
-            temp2 = state[3,Nb - 2];
-            temp3 = state[3,Nb - 1];
+            temp1 = state[3][Nb - 3];
+            temp2 = state[3][Nb - 2];
+            temp3 = state[3][Nb - 1];
             for (i = Nb - 1; i > 2; i--)
             {
-                state[3,i] = state[3,(i - 3) % Nb];
+                state[3][i] = state[3][(i - 3) % Nb];
             }
-            state[3,0] = temp1;
-            state[3,1] = temp2;
-            state[3,2] = temp3;
+            state[3][0] = temp1;
+            state[3][1] = temp2;
+            state[3][2] = temp3;
 
             return state;
         }
 
-        private int[,] invSubBytes(int[,] state)
+        private int[][] invSubBytes(int[][] state)
         {
             for (int i = 0; i < 4; i++)
             {
                 for (int j = 0; j < Nb; j++)
                 {
-                    state[i,j] = invSubWord(state[i,j]) & 0xFF;
+                    state[i][j] = invSubWord(state[i][j]) & 0xFF;
                 }
             }
             return state;
@@ -251,14 +297,41 @@ namespace Aes_Bin_Tam
             int subWord = 0;
             for (int i = 24; i >= 0; i -= 8)
             {
-                int input = word << i >> 24;
+                var temp = word << i;
+                int input = (int)(((uint)(word << i)) >> 24);
                 subWord |= AesHelper.rsBox[input] << (24 - i);
             }
             return subWord;
         }
+
+        public static void PrintByteArray(byte[] bytes)
+        {
+            var sb = new StringBuilder("new byte[] { ");
+            foreach (var b in bytes)
+            {
+                sb.Append(b + ", ");
+            }
+            sb.Append("}");
+            Console.WriteLine(sb.ToString());
+        }
+
+        public static void PrintIntArray(int[] bytes)
+        {
+            var sb = new StringBuilder("new byte[] { ");
+            foreach (var b in bytes)
+            {
+                sb.Append(b + ", ");
+            }
+            sb.Append("}");
+            Console.WriteLine(sb.ToString());
+        }
         private int[] expandKey()
         {
-            int temp, i = 0;
+            int i = 0;
+            var temp = 0;
+            Console.WriteLine("Nk: " + Nk);
+            Console.WriteLine("Nr: " + Nr);
+            Console.WriteLine("Nb: " + Nb);
             while (i < Nk)
             {
                 w[i] = 0x00000000;
@@ -288,21 +361,21 @@ namespace Aes_Bin_Tam
             }
             return w;
         }
-        private int[,] mixColumns(int[,] state)
+        private int[][] mixColumns(int[][] state)
         {
             int temp0, temp1, temp2, temp3;
             for (int c = 0; c < Nb; c++)
             {
 
-                temp0 = mult(0x02, state[0,c]) ^ mult(0x03, state[1,c]) ^ state[2,c] ^ state[3,c];
-                temp1 = state[0,c] ^ mult(0x02, state[1,c]) ^ mult(0x03, state[2,c]) ^ state[3,c];
-                temp2 = state[0,c] ^ state[1,c] ^ mult(0x02, state[2,c]) ^ mult(0x03, state[3,c]);
-                temp3 = mult(0x03, state[0,c]) ^ state[1,c] ^ state[2,c] ^ mult(0x02, state[3,c]);
+                temp0 = mult(0x02, state[0][c]) ^ mult(0x03, state[1][c]) ^ state[2][c] ^ state[3][c];
+                temp1 = state[0][c] ^ mult(0x02, state[1][c]) ^ mult(0x03, state[2][c]) ^ state[3][c];
+                temp2 = state[0][c] ^ state[1][c] ^ mult(0x02, state[2][c]) ^ mult(0x03, state[3][c]);
+                temp3 = mult(0x03, state[0][c]) ^ state[1][c] ^ state[2][c] ^ mult(0x02, state[3][c]);
 
-                state[0,c] = temp0;
-                state[1,c] = temp1;
-                state[2,c] = temp2;
-                state[3,c] = temp3;
+                state[0][c] = temp0;
+                state[1][c] = temp1;
+                state[2][c] = temp2;
+                state[3][c] = temp3;
             }
             return state;
         }
@@ -317,55 +390,58 @@ namespace Aes_Bin_Tam
                     sum = sum ^ b;
                 }
                 b = xtime(b);
-                a = a >> 1;
+                a = (int)((uint)a) >> 1;
             }
             return sum;
         }
         private static int rotWord(int word)
         {
-            return (int)((word << 8) | ((word & 0xFF000000) >> 24));
+            var temp1 = word << 8;
+            var temp2 = (int)(((uint)(word & 0xFF000000)) >> 24);
+            var result = temp1 | temp2;
+            return result;
         }
-        private int[,] shiftRows(int[,] state)
+        private int[][] shiftRows(int[][] state)
         {
             int temp1, temp2, temp3, i;
 
-            temp1 = state[1,0];
+            temp1 = state[1][0];
             for (i = 0; i < Nb - 1; i++)
             {
-                state[1,i] = state[1,(i + 1) % Nb];
+                state[1][i] = state[1][(i + 1) % Nb];
             }
-            state[1,Nb - 1] = temp1;
+            state[1][Nb - 1] = temp1;
 
-            temp1 = state[2,0];
-            temp2 = state[2,1];
+            temp1 = state[2][0];
+            temp2 = state[2][1];
             for (i = 0; i < Nb - 2; i++)
             {
-                state[2,i] = state[2,(i + 2) % Nb];
+                state[2][i] = state[2][(i + 2) % Nb];
             }
-            state[2,Nb - 2] = temp1;
-            state[2,Nb - 1] = temp2;
+            state[2][Nb - 2] = temp1;
+            state[2][Nb - 1] = temp2;
 
-            temp1 = state[3,0];
-            temp2 = state[3,1];
-            temp3 = state[3,2];
+            temp1 = state[3][0];
+            temp2 = state[3][1];
+            temp3 = state[3][2];
             for (i = 0; i < Nb - 3; i++)
             {
-                state[3,i] = state[3,(i + 3) % Nb];
+                state[3][i] = state[3][(i + 3) % Nb];
             }
-            state[3,Nb - 3] = temp1;
-            state[3,Nb - 2] = temp2;
-            state[3,Nb - 1] = temp3;
+            state[3][Nb - 3] = temp1;
+            state[3][Nb - 2] = temp2;
+            state[3][Nb - 1] = temp3;
 
             return state;
         }
 
-        private int[,] subBytes(int[,] state)
+        private int[][] subBytes(int[][] state)
         {
             for (int i = 0; i < 4; i++)
             {
                 for (int j = 0; j < Nb; j++)
                 {
-                    state[i,j] = subWord(state[i,j]) & 0xFF;
+                    state[i][j] = subWord(state[i][j]) & 0xFF;
                 }
             }
             return state;
@@ -376,7 +452,8 @@ namespace Aes_Bin_Tam
             int subWord = 0;
             for (int i = 24; i >= 0; i -= 8)
             {
-                int input = word << i >> 24;
+                var temp = word << i;
+                int input = (int)(((uint)(word << i)) >> 24);
                 subWord |= AesHelper.sBox[input] << (24 - i);
             }
             return subWord;
@@ -409,7 +486,8 @@ namespace Aes_Bin_Tam
             {
                 try
                 {
-                    output.Write(encrypt(copyOfRange(text, i, i + 16)));
+                    var byteArray = encrypt(copyOfRange(text, i, i + 16));
+                    output.Write(byteArray);
                 }
                 catch (IOException e)
                 {
@@ -426,7 +504,8 @@ namespace Aes_Bin_Tam
             {
                 try
                 {
-                    output.Write(decrypt(copyOfRange(text, i, i + 16)));
+                    var byteArray = decrypt(copyOfRange(text, i, i + 16));
+                    output.Write(byteArray);
                 }
                 catch (IOException e)
                 {

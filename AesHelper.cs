@@ -68,7 +68,7 @@ namespace Aes_Bin_Tam
         Console.WriteLine("| 5. Xem so bit khac biet truoc va sau khi ma hoa      |");
         Console.WriteLine("| 6. Thoat                                             |");
         Console.WriteLine(" ======================================================");
-        Console.Write("Vui lòng chon: ");
+        Console.Write("Vui long chon: ");
     }
     }
 }

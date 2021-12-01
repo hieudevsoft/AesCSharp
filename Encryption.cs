@@ -8,6 +8,17 @@ namespace Aes_Bin_Tam
         private static Aes aes;
         private static byte[] plaintext;
         private static byte[] cipherText;
+
+        public static void PrintByteArray(byte[] bytes)
+        {
+            var sb = new StringBuilder("new byte[] { ");
+            foreach (var b in bytes)
+            {
+                sb.Append(b + ", ");
+            }
+            sb.Append("}");
+            Console.WriteLine(sb.ToString());
+        }
         public static void ECBEncryptionWithKey()
         {
             while (true)
@@ -25,23 +36,23 @@ namespace Aes_Bin_Tam
                     long startTime = nanoTime();
                     Console.WriteLine("Plain text: " + plainText);
                     byte[] cipherBytes = aes.ECB_encrypt(inputText);
-                    String a = Encoding.UTF8.GetString(cipherBytes);
+                    String a = System.Convert.ToBase64String(cipherBytes);
                     Console.WriteLine("Cipher text: " + a.Trim());
                     long endTime = nanoTime();
-                    Console.WriteLine("ECB Encryption | " + ((float)(endTime - startTime) / 1000.00) + "ms");
+                    Console.WriteLine("ECB Encryption | " + ((float)(endTime - startTime) / 1000000.00) + "ms");
                     startTime = nanoTime();
                     Console.WriteLine("Cipher text: " + a.Trim());
                     plainText = Encoding.UTF8.GetString(aes.ECB_decrypt(cipherBytes));
                     Console.WriteLine("Plain text: " + plainText);
                     endTime = nanoTime();
-                    Console.WriteLine("ECB Decryption | " + ((float)(endTime - startTime) / 1000.00) + "ms");
+                    Console.WriteLine("ECB Decryption | " + ((float)(endTime - startTime) / 1000000.00) + "ms");
                     plaintext = inputText;
                     cipherText = cipherBytes;
                     break;
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("Vui lòng nhập lại: ");
+                    Console.WriteLine("Vui long nhap lai: ");
                     Console.WriteLine(e.Data);
                 }
             }
@@ -62,7 +73,7 @@ namespace Aes_Bin_Tam
                     aes = new Aes(key);
                     long startTime = nanoTime();
                     byte[] cipherBytes = aes.ECB_encrypt(inputText);
-                    String a = Encoding.UTF8.GetString(cipherBytes);
+                    String a = System.Convert.ToBase64String(cipherBytes);
                     Console.WriteLine("Cipher text: " + a.Trim());
                     long endTime = nanoTime();
                     Console.WriteLine("ECB Encryption | " + ((float)(endTime - startTime) / 1000.00) + "ms");
@@ -104,7 +115,7 @@ namespace Aes_Bin_Tam
                     long startTime = nanoTime();
                     Console.WriteLine("Plain text: " + plainText);
                     byte[] cipherBytes = aes.CBC_encrypt(inputText);
-                    String a = Encoding.UTF8.GetString(cipherBytes);
+                    String a = System.Convert.ToBase64String(cipherBytes);
                     Console.WriteLine("Cipher text: " + a.Trim());
                     long endTime = nanoTime();
                     Console.WriteLine("CBC Encryption | " + ((float)(endTime - startTime) / 1000.00) + "ms");
@@ -142,7 +153,7 @@ namespace Aes_Bin_Tam
                     aes = new Aes(key, iv);
                     long startTime = nanoTime();
                     byte[] cipherBytes = aes.CBC_encrypt(inputText);
-                    String a = Encoding.UTF8.GetString(cipherBytes);
+                    String a = System.Convert.ToBase64String(cipherBytes);
                     Console.WriteLine("Cipher text: " + a.Trim());
                     String b = Encoding.UTF8.GetString(iv);
                     Console.WriteLine("Iv: " + b.Trim());
@@ -175,10 +186,11 @@ namespace Aes_Bin_Tam
 
         private static String pushDataToBlock(String text)
         {
-            int spaceNum = Encoding.UTF8.GetBytes(text).Length % 16 == 0 ? 0 : 16 -  Encoding.UTF8.GetBytes(text).Length % 16;
+            int spaceNum = Encoding.UTF8.GetBytes(text).Length % 16 == 0 ? 0 : 16 - Encoding.UTF8.GetBytes(text).Length % 16;
             StringBuilder textBuilder = new StringBuilder(text);
-            for(int i = 0; i< spaceNum;i++){
-            textBuilder.Append(" ");
+            for (int i = 0; i < spaceNum; i++)
+            {
+                textBuilder.Append(" ");
             }
             text = textBuilder.ToString();
             return text;
